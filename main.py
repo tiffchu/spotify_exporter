@@ -95,8 +95,8 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
 
 
 if __name__ == "__main__":
-    CLIENT_ID = '92a4d52030df43c0a515ad2862140b4e'
-    CLIENT_SECRET = '24257d2c8540441f9b1170d91697927d'
+    #CLIENT_ID = ''
+    #CLIENT_SECRET = ''
     REDIRECT_URI = 'http://localhost:8888/callback'
     FILE_PATH = '/Users/Tiffany/Downloads/liked_songs.csv'
     PLAYLIST_NAME = 'My CSV Playlist'
