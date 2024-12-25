@@ -8,8 +8,6 @@ import os
 
 load_dotenv()  # Load environment variables from .env file
 
-CLIENT_ID = os.getenv('CLIENT_ID')
-CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, redirect_uri):
     """
     Create a Spotify playlist from a CSV file containing songs.
@@ -95,10 +93,10 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
 
 
 if __name__ == "__main__":
-    #CLIENT_ID = ''
-    #CLIENT_SECRET = ''
+    CLIENT_ID = os.getenv('CLIENT_ID')
+    CLIENT_SECRET = os.getenv('CLIENT_SECRET')
     REDIRECT_URI = 'http://localhost:8888/callback'
-    FILE_PATH = '/Users/Tiffany/Downloads/liked_songs.csv'
+    FILE_PATH = '/Users/Tiffany/Downloads/liked_songs.csv'   #EDIT THIS TO OWN FILE PATH
     PLAYLIST_NAME = 'My CSV Playlist'
 
     try:
