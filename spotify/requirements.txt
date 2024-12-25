@@ -1,0 +1,4 @@
+pandas
+spotipy
+tqdm
+python-dotenv
