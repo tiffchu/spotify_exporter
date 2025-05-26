@@ -1,30 +1,28 @@
-import csv
+import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+import time
+from tqdm import tqdm
+from dotenv import load_dotenv
+import os
+import csv
 
-# Replace with your credentials
-CLIENT_ID = 'your_spotify_client_id'
-CLIENT_SECRET = 'your_spotify_client_secret'
-REDIRECT_URI = 'http://localhost:8888/callback'
+load_dotenv()  # environment variables from .env file
 
-# access liked songs
-SCOPE = 'user-library-read'
-
-#Authenticate
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    redirect_uri=REDIRECT_URI,
-    scope=SCOPE
+    client_id = os.getenv('SPOTIPY_CLIENT_ID'),
+    client_secret = os.getenv('SPOTIPY_CLIENT_SECRET'),
+    redirect_uri='http://localhost:8888/callback',
+    scope='user-library-read'
 ))
 
 # liked songs
-def get_liked_songs(limit=50):
+def get_liked_songs():
     results = []
     offset = 0
 
     while True:
-        response = sp.current_user_saved_tracks(limit=limit, offset=offset)
+        response = sp.current_user_saved_tracks(offset=offset)
         items = response['items']
         if not items:
             break
@@ -35,16 +33,23 @@ def get_liked_songs(limit=50):
                 'Track Name': track['name'],
                 'Artist(s)': ', '.join([artist['name'] for artist in track['artists']]),
                 'Album': track['album']['name'],
-                'Added At': item['added_at'],
-                'Spotify URL': track['external_urls']['spotify']
+                'Release Date': track['album']['release_date'],
+                'Duration (ms)': track['duration_ms'],
+                'Explicit': track['explicit'],
+                'Popularity': track['popularity'],
+                'Track ID': track['id'],
+                'Track URI': track['uri'],
+                'Spotify URL': track['external_urls']['spotify'],
+                'Added At': item['added_at']
             })
+
         
-        offset += limit
+        offset 
 
     return results
 
 # Save to CSV
-def save_to_csv(tracks, filename='liked_songs.csv'):
+def save_to_csv(tracks, filename='liked_songs1.csv'):
     keys = tracks[0].keys() if tracks else []
     with open(filename, mode='w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=keys)
