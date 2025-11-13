@@ -51,7 +51,7 @@ def get_liked_songs(limit=50):
     return results
 
 # Save to CSV
-def save_to_csv(tracks, filename='liked_songs1.csv'):
+def save_to_csv(tracks, filename='liked_songs2025.csv'):
     keys = tracks[0].keys() if tracks else []
     with open(filename, mode='w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=keys)
