@@ -1,5 +1,8 @@
 #turn all liked songs into csv then into playlist
 
+#ignore this file
+
+
 import pandas as pd
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth

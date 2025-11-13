@@ -3,7 +3,7 @@
 edit path to .csv file containing spotify songs and edit name of outputted playlist. workaround to using spotify premium when blacklisted for using xmanager
 
 ## Setup
-1. Copy `.env.example` to `.env`
+1. Copy `.env.example` to `.env`, make an app on developer.spotify.com to get keys. can also export client_id, client_secret="123abc" in terminal
 2. Fill in your Spotify API credentials in `.env`
 3. Install dependencies: `pip install -r requirements.txt`
 4. turn liked songs into a csv file, run playlist_to_csv.py

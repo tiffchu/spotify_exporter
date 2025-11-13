@@ -9,6 +9,9 @@ import csv
 
 load_dotenv()  # environment variables from .env file
 
+# export client_id="123abc"
+# export client_secret="123abc" in terminal
+
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id = os.getenv('CLIENT_ID'),
     client_secret = os.getenv('CLIENT_SECRET'),
@@ -33,7 +36,7 @@ def get_liked_songs(limit=50):
                 track = item['track']
                 results.append({
                     'Track Name': track['name'],
-                    'Artist(s)': ', '.join([artist['name'] for artist in track['artists']]),
+                    'Artist Name(s)': ', '.join([artist['name'] for artist in track['artists']]),
                     'Album': track['album']['name'],
                     'Release Date': track['album']['release_date'],
                     'Duration (ms)': track['duration_ms'],

@@ -96,7 +96,7 @@ if __name__ == "__main__":
     CLIENT_ID = os.getenv('CLIENT_ID')
     CLIENT_SECRET = os.getenv('CLIENT_SECRET')
     REDIRECT_URI = 'http://localhost:8888/callback'
-    FILE_PATH = '/Users/Tiffany/Downloads/liked_songs.csv'   #EDIT THIS TO OWN FILE PATH
+    FILE_PATH = "/Users/tiffa/Desktop/liked_songs2025.csv"   #EDIT THIS TO OWN FILE PATH. # FILE_PATH = os.getenv('SPOTIFY_CSV_PATH');  export SPOTIFY_CSV_PATH="/Users/tiffa/Desktop/liked_songs.csv"
     PLAYLIST_NAME = 'My CSV Playlist'
 
     try:
