@@ -3,15 +3,19 @@
 workaround to using spotify premium when blacklisted for using xmanager. I just make a new free trial spotify account for however long the trial lasts for, then I make a csv of all my liked songs from my original spotify account, and convert them into a sharable playlist using these scripts. 
 
 ### Prereqs
+
 1. You must be a premium user with a [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) account
 2. In the developer dashboard, in your app under **Redirect URIs**, add exactly:
+
 ```
    http://127.0.0.1:8888/callback
 ```
+
 3. Add the email address of the Spotify account you'll log in with in the user management tab on the dashboard
 4. Save, then open the app and copy your **Client ID** and **Client Secret**
 
 ## Setup
+
 1. Copy `.env.example` to `.env`, make an app on developer.spotify.com to get keys. can also export client_id, client_secret="123abc" in terminal
 2. Fill in your Spotify API credentials in `.env`
 3. Install dependencies: `pip install -r requirements.txt`
