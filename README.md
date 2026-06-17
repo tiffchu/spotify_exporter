@@ -1,6 +1,6 @@
 # spotify_exporter - moves all your liked songs into a playlist 
 
-edit path to .csv file containing spotify songs and edit name of outputted playlist. workaround to using spotify premium when blacklisted for using xmanager
+workaround to using spotify premium when blacklisted for using xmanager. I just make a new free trial spotify account for however long the trial lasts for, then I make a csv of all my liked songs from my original spotify account, and convert them into a sharable playlist using these scripts. 
 
 ### Prereqs
 1. You must be a premium user with a [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) account
