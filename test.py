@@ -10,6 +10,22 @@ import time
 from tqdm import tqdm
 from datetime import datetime
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+CSV_COLUMNS = [
+    'Track Name',
+    'Artist Name(s)',
+    'Album',
+    'Added At',
+    'Duration (ms)',
+    'Spotify URI',
+]
+
+def load_local_env():
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
 
 def export_liked_songs_to_csv(sp, output_path=None):
     """
@@ -27,6 +43,9 @@ def export_liked_songs_to_csv(sp, output_path=None):
         output_path = f'liked_songs_{timestamp}.csv'
 
     print("Fetching liked songs...")
+    test = sp.current_user_saved_tracks(limit=1, offset=0)
+    print(f"DEBUG total liked songs reported by API: {test['total']}")
+    print(f"DEBUG items returned: {len(test['items'])}")
     tracks = []
     offset = 0
     limit = 50  # Maximum allowed by Spotify API
@@ -54,7 +73,7 @@ def export_liked_songs_to_csv(sp, output_path=None):
         time.sleep(0.1)  # Rate limiting
     
     # Create DataFrame and save to CSV
-    df = pd.DataFrame(tracks)
+    df = pd.DataFrame(tracks, columns=CSV_COLUMNS)
     df.to_csv(output_path, index=False)
     print(f"\nExported {len(tracks)} liked songs to {output_path}")
     return output_path
@@ -75,12 +94,21 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
     """
 
     try:
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        auth_manager = SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri=redirect_uri,
-            scope="playlist-modify-public user-library-read"  # Added scope for liked songs
-        ))
+            scope="playlist-modify-public playlist-modify-private user-library-read",
+            open_browser=False,
+            show_dialog=True
+        )
+        print("\nOpen this Spotify authorization URL in your browser:")
+        print(auth_manager.get_authorize_url())
+        print("")
+        sp = spotipy.Spotify(auth_manager=auth_manager)
+
+        me = sp.current_user()
+        print(f"Logged in as: {me['display_name']} ({me['id']}) | Email: {me.get('email', 'N/A')}")
     except Exception as e:
         raise Exception(f"Failed to authenticate with Spotify: {str(e)}")
 
@@ -89,13 +117,20 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
         songs = pd.read_csv(file_path)
         if 'Track Name' not in songs.columns or 'Artist Name(s)' not in songs.columns:
             raise ValueError("CSV must contain 'Track Name' and 'Artist Name(s)' columns")
+        if songs.empty:
+            raise ValueError("CSV contains no tracks to add to a playlist")
     except Exception as e:
         raise Exception(f"Failed to read CSV file: {str(e)}")
 
     # Create playlist
     try:
-        user_id = sp.current_user()['id']
-        playlist = sp.user_playlist_create(user_id, name=playlist_name, public=True)
+        current_user = sp.current_user()
+        user_id = current_user['id']
+        print(f"Authenticated Spotify user ID: {user_id}")
+        playlist = sp._post(
+            "me/playlists",
+            payload={"name": playlist_name, "public": True}
+        )
     except Exception as e:
         raise Exception(f"Failed to create playlist: {str(e)}")
 
@@ -129,7 +164,10 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
             batch_size = 100
             for i in range(0, len(track_uris), batch_size):
                 batch = track_uris[i:i + batch_size]
-                sp.playlist_add_items(playlist['id'], batch)
+                sp._post(
+                    f"playlists/{playlist['id']}/tracks",
+                    payload={"uris": batch}
+                )
                 time.sleep(1)
         except Exception as e:
             raise Exception(f"Failed to add tracks to playlist: {str(e)}")
@@ -146,28 +184,58 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
     return playlist['external_urls']['spotify']
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-    import os
-    
-    # Load environment variables
-    load_dotenv()
-    
+    load_local_env()
+
     CLIENT_ID = os.getenv('CLIENT_ID')
     CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-    REDIRECT_URI = os.getenv('REDIRECT_URI', 'http://localhost:8888/callback')
-    PLAYLIST_NAME = 'My Liked Songs Playlist'
-    
+    REDIRECT_URI = os.getenv('REDIRECT_URI', 'http://127.0.0.1:8888/callback')
+    PLAYLIST_NAME = os.getenv('PLAYLIST_NAME', 'My Liked Songs Playlist')
+    INPUT_CSV_PATH = os.getenv('SPOTIFY_CSV_PATH')
+    OUTPUT_CSV_PATH = os.getenv('SPOTIFY_EXPORT_PATH')
+
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("Error: Set CLIENT_ID and CLIENT_SECRET in your .env file or environment variables.")
+        raise SystemExit(1)
+
+    if not OUTPUT_CSV_PATH:
+        print("Error: Set SPOTIFY_EXPORT_PATH in your .env file or environment variables.")
+        raise SystemExit(1)
+
+    print("Starting Spotify export with:")
+    print(f"CLIENT_ID={CLIENT_ID}")
+    print(f"REDIRECT_URI={REDIRECT_URI}")
+    print(f"SPOTIFY_EXPORT_PATH={OUTPUT_CSV_PATH}")
+    if INPUT_CSV_PATH:
+        print(f"SPOTIFY_CSV_PATH={INPUT_CSV_PATH}")
+
     try:
         # Initialize Spotify client
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        auth_manager = SpotifyOAuth(
             client_id=CLIENT_ID,
             client_secret=CLIENT_SECRET,
             redirect_uri=REDIRECT_URI,
-            scope="playlist-modify-public user-library-read"
-        ))
+            scope="playlist-modify-public playlist-modify-private user-library-read",
+            open_browser=False,
+            show_dialog=True
+        )
+        print("\nOpen this Spotify authorization URL in your browser:")
+        print(auth_manager.get_authorize_url())
+        print("After Spotify redirects and the page fails to load, copy the full URL and paste it below.")
+        redirected_url = input("Paste the full redirected URL here: ").strip()
+        code = auth_manager.parse_response_code(redirected_url)
+        token_info = auth_manager.get_access_token(code=code, check_cache=False)
+        sp = spotipy.Spotify(auth=token_info["access_token"])
+
+        me = sp.current_user()
+        print(f"Logged in as: {me['display_name']} ({me['id']})")
         
         # Export liked songs to CSV
-        csv_path = export_liked_songs_to_csv(sp)
+        csv_path = export_liked_songs_to_csv(sp, OUTPUT_CSV_PATH)
+
+        exported_songs = pd.read_csv(csv_path)
+        if exported_songs.empty:
+            print("No liked songs were found for this Spotify account, so no playlist was created.")
+            raise SystemExit(0)
         
         # Create playlist from the exported CSV
         playlist_url = create_spotify_playlist(
