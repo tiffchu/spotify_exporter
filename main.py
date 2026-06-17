@@ -5,8 +5,12 @@ import time
 from tqdm import tqdm
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()  # Load environment variables from .env file
+def load_local_env():
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.exists():
+        load_dotenv(env_path)
 
 def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, redirect_uri):
     """
@@ -24,12 +28,18 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
     """
 
     try:
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        auth_manager = SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
             redirect_uri=redirect_uri,
-            scope="playlist-modify-public"
-        ))
+            scope="playlist-modify-public playlist-modify-private",
+            open_browser=False
+        )
+        if not auth_manager.cache_handler.get_cached_token():
+            print("\nOpen this Spotify authorization URL in your browser:")
+            print(auth_manager.get_authorize_url())
+            print("")
+        sp = spotipy.Spotify(auth_manager=auth_manager)
     except Exception as e:
         raise Exception(f"Failed to authenticate with Spotify: {str(e)}")
 
@@ -43,8 +53,13 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
 
     # Create playlist
     try:
-        user_id = sp.current_user()['id']
-        playlist = sp.user_playlist_create(user_id, name=playlist_name, public=True)
+        current_user = sp.current_user()
+        user_id = current_user['id']
+        print(f"Authenticated Spotify user ID: {user_id}")
+        playlist = sp._post(
+            "me/playlists",
+            payload={"name": playlist_name, "public": True}
+        )
     except Exception as e:
         raise Exception(f"Failed to create playlist: {str(e)}")
 
@@ -75,7 +90,10 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
             batch_size = 100
             for i in range(0, len(track_uris), batch_size):
                 batch = track_uris[i:i + batch_size]
-                sp.playlist_add_items(playlist['id'], batch)
+                sp._post(
+                    f"playlists/{playlist['id']}/tracks",
+                    payload={"uris": batch}
+                )
                 time.sleep(1)  # Add delay between batch uploads
         except Exception as e:
             raise Exception(f"Failed to add tracks to playlist: {str(e)}")
@@ -93,11 +111,25 @@ def create_spotify_playlist(file_path, playlist_name, client_id, client_secret, 
 
 
 if __name__ == "__main__":
+    load_local_env()
+
     CLIENT_ID = os.getenv('CLIENT_ID')
     CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-    REDIRECT_URI = 'http://localhost:8888/callback'
-    FILE_PATH = "/Users/tiffa/Desktop/liked_songs2025.csv"   #EDIT THIS TO OWN FILE PATH. # FILE_PATH = os.getenv('SPOTIFY_CSV_PATH');  export SPOTIFY_CSV_PATH="/Users/tiffa/Desktop/liked_songs.csv"
-    PLAYLIST_NAME = 'My CSV Playlist'
+    REDIRECT_URI = os.getenv('REDIRECT_URI', 'http://127.0.0.1:8888/callback')
+    FILE_PATH = os.getenv('SPOTIFY_CSV_PATH')
+    PLAYLIST_NAME = os.getenv('PLAYLIST_NAME', 'My CSV Playlist')
+
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("Error: Set CLIENT_ID and CLIENT_SECRET in your .env file or environment variables.")
+        raise SystemExit(1)
+
+    if not FILE_PATH:
+        print("Error: Set SPOTIFY_CSV_PATH in your .env file or environment variables.")
+        raise SystemExit(1)
+
+    print("Starting Spotify playlist creation with:")
+    print(f"CLIENT_ID={CLIENT_ID}")
+    print(f"REDIRECT_URI={REDIRECT_URI}")
 
     try:
         playlist_url = create_spotify_playlist(
